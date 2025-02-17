@@ -1,0 +1,96 @@
+import os
+import time
+import json
+from web3 import Web3
+from flashbots import flashbot
+
+INFURA_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+PRIVATE_KEY = "YOUR_PRIVATE_KEY"
+MY_ADDRESS = "YOUR_WALLET_ADDRESS"
+FLASHBOTS_RELAY = "https://relay.flashbots.net"
+
+w3 = Web3(Web3.HTTPProvider(INFURA_URL))
+account = w3.eth.account.from_key(PRIVATE_KEY)
+flashbot(w3, account, FLASHBOTS_RELAY)
+
+AAVE_POOL_ADDRESS = "0x7d2768dE32b0b80b7a3454c06081BcbD872E2E13"
+UNISWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+SUSHISWAP_ROUTER_ADDRESS = "0xd9e1CE17F2641F24aE83637AB66A2CCA9C378B9F"
+WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAd9083C756Cc2"
+
+def load_abi(file_path):
+    with open(file_path, "r") as f:
+        return json.load(f)
+
+AAVE_POOL_ABI = load_abi("aave_pool_abi.json")
+UNISWAP_ROUTER_ABI = load_abi("uniswap_router_abi.json")
+SUSHISWAP_ROUTER_ABI = load_abi("sushiswap_router_abi.json")
+
+def get_contract(abi, address):
+    return w3.eth.contract(address=Web3.to_checksum_address(address), abi=abi)
+
+AAVE_POOL = get_contract(AAVE_POOL_ABI, AAVE_POOL_ADDRESS)
+UNISWAP_ROUTER = get_contract(UNISWAP_ROUTER_ABI, UNISWAP_ROUTER_ADDRESS)
+SUSHISWAP_ROUTER = get_contract(SUSHISWAP_ROUTER_ABI, SUSHISWAP_ROUTER_ADDRESS)
+
+def get_price(router, amount_in):
+    path = [WETH_ADDRESS, WETH_ADDRESS]
+    amounts_out = router.functions.getAmountsOut(amount_in, path).call()
+    return amounts_out[-1]
+
+def execute_flashloan_arbitrage(amount):
+    tx = AAVE_POOL.functions.flashLoan(MY_ADDRESS, WETH_ADDRESS, amount, b'').build_transaction({
+        'from': MY_ADDRESS,
+        'gasPrice': 0,
+        'nonce': w3.eth.get_transaction_count(MY_ADDRESS),
+        'gas': 500000
+    })
+    signed_tx = account.sign_transaction(tx)
+    response = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    print(f"Flash Loan Transaction Sent via Flashbots: {response.hex()}")
+    return response
+
+def execute_trade(router, amount_in, buy=True):
+    path = [WETH_ADDRESS, WETH_ADDRESS]
+    deadline = int(time.time()) + 300
+    if buy:
+        tx = router.functions.swapExactETHForTokens(0, path, MY_ADDRESS, deadline).build_transaction({
+            'from': MY_ADDRESS,
+            'value': amount_in,
+            'gasPrice': 0,
+            'nonce': w3.eth.get_transaction_count(MY_ADDRESS),
+            'gas': 300000
+        })
+    else:
+        tx = router.functions.swapExactTokensForETH(amount_in, 0, path, MY_ADDRESS, deadline).build_transaction({
+            'from': MY_ADDRESS,
+            'gasPrice': 0,
+            'nonce': w3.eth.get_transaction_count(MY_ADDRESS),
+            'gas': 300000
+        })
+    signed_tx = account.sign_transaction(tx)
+    response = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    print(f"Trade Executed via Flashbots: {response.hex()}")
+    return response
+
+def execute_arbitrage():
+    amount_in = w3.to_wei(1, "ether")
+    uniswap_price = get_price(UNISWAP_ROUTER, amount_in)
+    sushiswap_price = get_price(SUSHISWAP_ROUTER, amount_in)
+    if uniswap_price > sushiswap_price:
+        execute_flashloan_arbitrage(amount_in)
+        execute_trade(SUSHISWAP_ROUTER, amount_in, buy=True)
+        execute_trade(UNISWAP_ROUTER, amount_in, buy=False)
+        print("Arbitrage Completed Successfully!")
+    else:
+        print("No Arbitrage Opportunity")
+
+if __name__ == "__main__":
+    print("Script by CRYPTOGRAPHYTUBE")
+    while True:
+        try:
+            execute_arbitrage()
+            time.sleep(60)
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(60)
