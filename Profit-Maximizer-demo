@@ -4,7 +4,7 @@ import json
 from web3 import Web3
 from flashbots import flashbot
 
-INFURA_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+INFURA_URL = "https://mainnet.infura.io/v3/9ca9e6b89ff8465d9c3cdbb0e43d9ab0"
 PRIVATE_KEY = "YOUR_PRIVATE_KEY"
 MY_ADDRESS = "YOUR_WALLET_ADDRESS"
 FLASHBOTS_RELAY = "https://relay.flashbots.net"
