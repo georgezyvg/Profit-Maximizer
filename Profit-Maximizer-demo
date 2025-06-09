@@ -5,7 +5,7 @@ from web3 import Web3
 from flashbots import flashbot
 
 INFURA_URL = "https://mainnet.infura.io/v3/9ca9e6b89ff8465d9c3cdbb0e43d9ab0"
-PRIVATE_KEY = "YOUR_PRIVATE_KEY"
+PRIVATE_KEY = "ea0ab9e7e4254ab56b04facbb3f0947bb758add6b8d387a31a4fca81956cd416"
 MY_ADDRESS = "0xc3f1c9ee378e9f4963ce11e5f5ddbf181494a8e8"
 FLASHBOTS_RELAY = "https://relay.flashbots.net"
 
