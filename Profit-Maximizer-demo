@@ -6,7 +6,7 @@ from flashbots import flashbot
 
 INFURA_URL = "https://mainnet.infura.io/v3/9ca9e6b89ff8465d9c3cdbb0e43d9ab0"
 PRIVATE_KEY = "YOUR_PRIVATE_KEY"
-MY_ADDRESS = "YOUR_WALLET_ADDRESS"
+MY_ADDRESS = "0xc3f1c9ee378e9f4963ce11e5f5ddbf181494a8e8"
 FLASHBOTS_RELAY = "https://relay.flashbots.net"
 
 w3 = Web3(Web3.HTTPProvider(INFURA_URL))
